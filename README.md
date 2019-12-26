@@ -1,2 +1,2 @@
-# fs-mooc-osa3
-# fs-mooc-osa3
+# fullstack-mooc-osa3
+Helsingin yliopiston fullstack mooc -kurssin kolmannen osan tehtävä puhelinluettelon back-end
