@@ -17,8 +17,22 @@ mongoose
   });
 
 const personSchema = new mongoose.Schema({
-  name: String,
-  number: String
+  //pakollinen nimi vähintään kolmen merkin merkkijono
+  name: {
+    type: String,
+    minlength: 3,
+    required: true
+  },
+  //pakollinen puhelinnumero muotoa 'DDD DDD DDDD'
+  number: {
+    type: String,
+    validate: {
+      validator: function(v) {
+        return /\d{3}\d{3}\d{4}/.test(v);
+      }
+    },
+    required: true
+  }
 });
 
 personSchema.set('toJSON', {

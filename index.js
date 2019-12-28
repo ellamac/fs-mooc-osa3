@@ -120,9 +120,11 @@ app.post('/api/persons', (req, res, next) => {
   });
 
   //lisätään uusi henkilö tietokantaan
-  person.save().then(savedPerson => {
-    res.json(savedPerson.toJSON());
-  });
+  person
+    .save()
+    .then(savedPerson => savedPerson.toJSON())
+    .then(savedAndFormattedPerson => res.json(savedAndFormattedPerson))
+    .catch(error => next(error));
 });
 
 /* HENKILÖN MUOKKAUS */
@@ -136,18 +138,15 @@ app.put('/api/persons/:id', (req, res, next) => {
   };
 
   Person.findByIdAndUpdate(req.params.id, person, { new: true })
-    .then(updatedPerson => {
-      res.json(updatedPerson.toJSON());
-    })
+    .then(updatedPerson => uodatedPerson.toJSON())
+    .then(savedAndFormattedPerson => res.json(savedAndFormattedPerson))
     .catch(error => next(error));
 });
 
 /* HENKILÖN POISTAMINEN */
 app.delete('/api/persons/:id', (req, res, next) => {
   Person.findByIdAndRemove(req.params.id)
-    .then(result => {
-      res.status(204).end();
-    })
+    .then(result => res.status(204).end())
     .catch(error => next(error));
 });
 
@@ -165,7 +164,11 @@ const errorHandler = (error, req, res, next) => {
   //Virheellinen olio-id
   if (error.name === 'CastError' && error.kind == 'ObjectId') {
     return res.status(400).send({ error: 'malformatted id' });
+  } //validointivirhe
+  else if (error.name === 'ValildationError') {
+    return res.status(400).json({ error: error.message });
   }
+
   //muuten oletusvirheenkäsittely
   next(error);
 };
