@@ -87,32 +87,6 @@ app.get('/api/persons/:id', (req, res, next) => {
 app.post('/api/persons', (req, res, next) => {
   const body = req.body;
 
-  // nimi pakollinen
-  if (!body.name) {
-    return res.status(400).json({
-      error: 'name is missing'
-    });
-  } /*// nimen täytyy olla uniikki
-  else if (Person.find({ name: body.name }, function(err, docs) {})) {
-    return res.status(400).json({
-      error: 'name must be unique'
-    });
-  }
-*/
-  // numero pakollinen
-  else if (!body.number) {
-    return res.status(400).json({
-      error: 'number is missing'
-    });
-  }
-  /*
-  // numeron täytyy olla uniikki
-  else if (Person.find({ number: body.number }, function(err, docs) {})) {
-    return res.status(400).json({
-      error: 'number must be unique'
-    });
-  }
-*/
   // uusi person-objekti syötetyillä arvoilla
   const person = new Person({
     name: body.name,
@@ -133,12 +107,14 @@ app.put('/api/persons/:id', (req, res, next) => {
 
   //henkilön uudet tiedot
   const person = {
-    name: body.name,
     number: body.number
   };
 
-  Person.findByIdAndUpdate(req.params.id, person, { new: true })
-    .then(updatedPerson => uodatedPerson.toJSON())
+  Person.findByIdAndUpdate(req.params.id, person, {
+    runValidators: true,
+    context: 'query'
+  })
+    .then(updatedPerson => updatedPerson.toJSON())
     .then(savedAndFormattedPerson => res.json(savedAndFormattedPerson))
     .catch(error => next(error));
 });
@@ -164,11 +140,9 @@ const errorHandler = (error, req, res, next) => {
   //Virheellinen olio-id
   if (error.name === 'CastError' && error.kind == 'ObjectId') {
     return res.status(400).send({ error: 'malformatted id' });
-  } //validointivirhe
-  else if (error.name === 'ValildationError') {
+  } else if (error.name === 'ValidationError') {
     return res.status(400).json({ error: error.message });
-  }
-
+  } //nimi on jo luettelossa
   //muuten oletusvirheenkäsittely
   next(error);
 };
