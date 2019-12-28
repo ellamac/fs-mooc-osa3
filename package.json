@@ -10,7 +10,8 @@
     "build:ui": "rm -rf build && cd ../fs-mooc-osa3-front && npm run build --prod && cp -r build ../fs-mooc-osa3/",
     "deploy": "git push heroku master",
     "deploy:full": "npm run build:ui && git add . && git commit -m uibuild && git push && npm run deploy",
-    "logs:prod": "heroku logs --tail"
+    "logs:prod": "heroku logs --tail",
+    "lint": "eslint ."
   },
   "author": "\"Ella Mäkelä",
   "license": "MIT",
@@ -28,6 +29,7 @@
     "morgan": "^1.9.1"
   },
   "devDependencies": {
+    "eslint": "^6.8.0",
     "nodemon": "^2.0.1"
   }
 }

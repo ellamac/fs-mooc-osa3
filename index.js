@@ -11,7 +11,7 @@ app.use(cors());
 app.use(bodyParser.json());
 
 //loggauksen konfiguraatiota
-morgan.token('person', function(req, res) {
+morgan.token('person', function(req) {
   if (req.method === 'POST') {
     return JSON.stringify(req.body);
   } else {
@@ -26,6 +26,7 @@ app.use(
   )
 );
 
+/*
 let persons = [
   {
     name: 'Arto Hellas',
@@ -48,6 +49,7 @@ let persons = [
     id: 4
   }
 ];
+*/
 
 /* HELLO WORLD */
 app.get('/', (req, res) => {
@@ -55,14 +57,14 @@ app.get('/', (req, res) => {
 });
 
 /* KAIKKI HENKILÖT*/
-app.get('/api/persons', (req, res, next) => {
+app.get('/api/persons', (req, res) => {
   Person.find({}).then(persons => {
     res.json(persons.map(person => person.toJSON()));
   });
 });
 
 /* PUHELINNUMEROIDEN MÄÄRÄ JA PVM */
-app.get('/info', (req, res, next) => {
+app.get('/info', (req, res) => {
   Person.countDocuments({}).then(count =>
     res.send(`<p>Phonebook has info for ${count} people</p>${new Date()}<p>`)
   );
@@ -122,7 +124,7 @@ app.put('/api/persons/:id', (req, res, next) => {
 /* HENKILÖN POISTAMINEN */
 app.delete('/api/persons/:id', (req, res, next) => {
   Person.findByIdAndRemove(req.params.id)
-    .then(result => res.status(204).end())
+    .then(() => res.status(204).end())
     .catch(error => next(error));
 });
 
@@ -138,7 +140,7 @@ const errorHandler = (error, req, res, next) => {
   console.log(error.message);
 
   //Virheellinen olio-id
-  if (error.name === 'CastError' && error.kind == 'ObjectId') {
+  if (error.name === 'CastError' && error.kind === 'ObjectId') {
     return res.status(400).send({ error: 'malformatted id' });
   } else if (error.name === 'ValidationError') {
     return res.status(400).json({ error: error.message });

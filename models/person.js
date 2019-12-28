@@ -10,7 +10,7 @@ mongoose.set('useFindAndModify', false);
 
 mongoose
   .connect(url, { useNewUrlParser: true })
-  .then(result => {
+  .then(() => {
     console.log('connected to MongDB');
   })
   .catch(error => {
@@ -35,7 +35,7 @@ const personSchema = new mongoose.Schema({
 
 // Apply the uniqueValidator plugin to personSchema.
 personSchema.plugin(uniqueValidator, {
-  message: `Expected {PATH} to be unique.`
+  message: 'Expected {PATH} to be unique.'
 });
 
 personSchema.set('toJSON', {
