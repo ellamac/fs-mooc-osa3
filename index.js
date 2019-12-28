@@ -1,13 +1,16 @@
-const express = require('express');
+const express = require('express'); //web-framework
 const app = express();
-const bodyParser = require('body-parser');
-const morgan = require('morgan');
+require('dotenv').config();
+const bodyParser = require('body-parser'); //http-pyyntöjen parseri
+const morgan = require('morgan'); //loggaus
 const cors = require('cors');
+const Person = require('./models/person');
 
 app.use(express.static('build'));
 app.use(cors());
 app.use(bodyParser.json());
 
+//loggauksen konfiguraatiota
 morgan.token('person', function(req, res) {
   if (req.method === 'POST') {
     return JSON.stringify(req.body);
@@ -16,6 +19,7 @@ morgan.token('person', function(req, res) {
   }
 });
 
+//morganin käyttö tiny-kongfiguraation mukaisesti
 app.use(
   morgan(
     ':method :url :status :res[content-length] - :response-time ms :person'
@@ -45,87 +49,130 @@ let persons = [
   }
 ];
 
+/* HELLO WORLD */
 app.get('/', (req, res) => {
-  console.log('bget / alkaa');
   res.send('<h1>Hello World</h1>');
-  console.log('bget / loppuu');
 });
 
-app.get('/api/persons', (req, res) => {
-  console.log('bget /api/persons alkaa');
-  res.json(persons);
-  console.log('bget /api/persons loppuu');
+/* KAIKKI HENKILÖT*/
+app.get('/api/persons', (req, res, next) => {
+  Person.find({}).then(persons => {
+    res.json(persons.map(person => person.toJSON()));
+  });
 });
 
-app.get('/info', (req, res) => {
-  console.log('bget /info alkaa');
-  res.send(
-    `<p>Phonebook has info for ${persons.length} people</p>${new Date()}<p>`
+/* PUHELINNUMEROIDEN MÄÄRÄ JA PVM */
+app.get('/info', (req, res, next) => {
+  Person.countDocuments({}).then(count =>
+    res.send(`<p>Phonebook has info for ${count} people</p>${new Date()}<p>`)
   );
-  console.log('bget /info loppuu');
 });
 
-app.get('/api/persons/:id', (req, res) => {
-  console.log('bget /api/persons/:id alkaa');
-
-  const id = Number(req.params.id);
-  person = persons.find(p => p.id === id);
-  if (person) {
-    res.send(`<p>Name: ${person.name}</p><p>Number: ${person.number}</p>`);
-  } else {
-    res.status(404).end();
-  }
-
-  console.log('bget /api/persons/:id loppuu');
+/* YHDEN HENKILÖN TIEDOT ID:N PERUSTEELLA */
+app.get('/api/persons/:id', (req, res, next) => {
+  Person.findById(req.params.id)
+    .then(person => {
+      if (person) {
+        res.json(person.toJSON());
+      } else {
+        res.status(404).end();
+      }
+    })
+    .catch(error => {
+      next(error);
+    });
 });
 
-app.delete('/api/persons/:id', (req, res) => {
-  console.log('bdelete alkaa');
-  const id = Number(req.params.id);
-  persons = persons.filter(p => p.id !== id);
-
-  res.status(204).end();
-  console.log('bdelete loppuu');
-});
-
-app.post('/api/persons', (req, res) => {
-  console.log('bpost alkaa');
-
+/* HENKILÖN LISÄÄMINEN */
+app.post('/api/persons', (req, res, next) => {
   const body = req.body;
 
+  // nimi pakollinen
   if (!body.name) {
     return res.status(400).json({
       error: 'name is missing'
     });
-  } else if (
-    persons.some(p => p.name.toUpperCase() === body.name.toUpperCase())
-  ) {
+  } /*// nimen täytyy olla uniikki
+  else if (Person.find({ name: body.name }, function(err, docs) {})) {
     return res.status(400).json({
       error: 'name must be unique'
     });
-  } else if (!body.number) {
+  }
+*/
+  // numero pakollinen
+  else if (!body.number) {
     return res.status(400).json({
       error: 'number is missing'
     });
-  } else if (persons.some(p => p.number === body.number)) {
+  }
+  /*
+  // numeron täytyy olla uniikki
+  else if (Person.find({ number: body.number }, function(err, docs) {})) {
     return res.status(400).json({
       error: 'number must be unique'
     });
   }
-
-  const person = {
+*/
+  // uusi person-objekti syötetyillä arvoilla
+  const person = new Person({
     name: body.name,
-    number: body.number,
-    id: Math.floor(Math.random() * 10000) + 1
-  };
+    number: body.number
+  });
 
-  persons = persons.concat(person);
-
-  res.json(person);
-  console.log('bpost loppuu');
+  //lisätään uusi henkilö tietokantaan
+  person.save().then(savedPerson => {
+    res.json(savedPerson.toJSON());
+  });
 });
 
-const PORT = process.env.PORT || 3001;
+/* HENKILÖN MUOKKAUS */
+app.put('/api/persons/:id', (req, res, next) => {
+  const body = req.body;
+
+  //henkilön uudet tiedot
+  const person = {
+    name: body.name,
+    number: body.number
+  };
+
+  Person.findByIdAndUpdate(req.params.id, person, { new: true })
+    .then(updatedPerson => {
+      res.json(updatedPerson.toJSON());
+    })
+    .catch(error => next(error));
+});
+
+/* HENKILÖN POISTAMINEN */
+app.delete('/api/persons/:id', (req, res, next) => {
+  Person.findByIdAndRemove(req.params.id)
+    .then(result => {
+      res.status(204).end();
+    })
+    .catch(error => next(error));
+});
+
+// Olemattomien osoitteiden käsittely
+const unknownEndpoint = (req, res) => {
+  res.status(404).send({ error: 'unknown endpoint' });
+};
+
+app.use(unknownEndpoint);
+
+//Virheidenkäsittelijä
+const errorHandler = (error, req, res, next) => {
+  console.log(error.message);
+
+  //Virheellinen olio-id
+  if (error.name === 'CastError' && error.kind == 'ObjectId') {
+    return res.status(400).send({ error: 'malformatted id' });
+  }
+  //muuten oletusvirheenkäsittely
+  next(error);
+};
+
+app.use(errorHandler);
+
+const PORT = process.env.PORT;
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 });
