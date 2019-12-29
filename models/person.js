@@ -1,7 +1,6 @@
 const mongoose = require('mongoose');
 var uniqueValidator = require('mongoose-unique-validator'); //uniikin attribuutin validointiin
 
-//const url = `mongodb+srv://Ella:3mil@cluster0-xp4o4.mongodb.net/phonebook-app?retryWrites=true`;
 const url = process.env.MONGODB_URI;
 
 console.log('connecting to', url);
